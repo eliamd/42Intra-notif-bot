@@ -1,20 +1,8 @@
-# **************************************************************************** #
-#                                                                              #
-#                                                         :::      ::::::::    #
-#    notif.py                                           :+:      :+:    :+:    #
-#                                                     +:+ +:+         +:+      #
-#    By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+         #
-#                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2024/08/22 15:04:44 by ele-lean          #+#    #+#              #
-#    Updated: 2024/08/22 16:38:36 by ele-lean         ###   ########.fr        #
-#                                                                              #
-# **************************************************************************** #
-
 import discord
 import getpass
 import time
 import config
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 from discord.ext import commands, tasks
 from selenium import webdriver
@@ -31,13 +19,13 @@ seen_ids = set()
 
 def parse_datetime(datetime_str):
     try:
-        # Remove the timezone info and parse the datetime string
+        # Supprimer les informations de fuseau horaire et analyser la chaîne datetime
         time_str = datetime_str.split(' CEST')[0]
         dt = datetime.strptime(time_str, '%Y-%m-%d %H:%M')
-        # Add timezone information
-        tz = pytz.timezone('Europe/Paris')  # Adjust timezone if needed
+        # Ajouter les informations de fuseau horaire
+        tz = pytz.timezone('Europe/Paris')  # Ajustez le fuseau horaire si nécessaire
         dt = tz.localize(dt)
-        # Convert to Unix timestamp
+        # Convertir en timestamp Unix
         timestamp = int(dt.timestamp())
         return timestamp
     except Exception as e:
@@ -62,12 +50,12 @@ def get_new_projects(driver):
                 end_index = project_text.find("\n", start_index)
                 if end_index == -1:
                     end_index = len(project_text)
-                
+
                 project_part = project_text[start_index:end_index].strip()
-                
+
                 time_element = item.find_element(By.CSS_SELECTOR, "span[data-original-title]")
                 data_original_title = time_element.get_attribute("data-original-title")
-                
+
                 timestamp = parse_datetime(data_original_title)
                 new_items.append([project_part, timestamp])
 
@@ -83,7 +71,7 @@ def get_eval():
 
         username.send_keys(login)
         password.send_keys(mdp)
-        
+
         submit_button = driver.find_element(By.ID, "kc-login")
         submit_button.click()
         WebDriverWait(driver, 10).until(
@@ -98,16 +86,18 @@ def get_eval():
                 mention = f"<@{id_discord}>"
                 timestamp = project[1]
                 if timestamp:
-                    timestamp_format = f"<t:{timestamp}:F>"  # 'F' format for a full date and time
-                    messages.append(f"{mention} New evaluation found: You will evaluate someone on {project[0]} at {timestamp_format}")
+                    timestamp_format = f"<t:{timestamp}:F>"  # Format 'F' pour une date et heure complètes
+                    messages.append(f"{mention}, **Nouvelle évaluation trouvée :** Vous allez évaluer quelqu'un pour le projet {project[0]} à {timestamp_format}.")
+                    # Créer une tâche pour envoyer un rappel à l'heure de l'évaluation
+                    bot.loop.call_later(timestamp - int(time.time()), lambda: bot.loop.create_task(channel.send(f"{mention}, **Rappel :** L'évaluation pour {project[0]} est maintenant.")))
                 else:
-                    messages.append(f"{mention} New evaluation found: You will evaluate someone on {project[0]}")
-            return "\n".join(messages)
+                    messages.append(f"{mention}, **Nouvelle évaluation trouvée :** Vous allez évaluer quelqu'un pour le projet {project[0]}.")
+            return messages
         else:
-            return "No new evaluations found for " + login
+            return [f"Aucune nouvelle évaluation trouvée pour {login}."]
     except Exception as e:
-        print(f"An error occurred: {e}")
-        return "An error occurred while checking for new evaluations."
+        print(f"Une erreur s'est produite: {e}")
+        return [f"Une erreur s'est produite lors de la vérification des nouvelles évaluations."]
     finally:
         driver.quit()
 
@@ -119,22 +109,61 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 @bot.event
 async def on_ready():
     print(f'Bot connecté en tant que {bot.user.name}')
-    send_message.start()
+    await bot.get_channel(CHANNEL_ID).send(embed=discord.Embed(
+        title="Activation du Bot",
+        description=":robot: Le bot est maintenant **actif** !",
+        color=discord.Color.green()
+    ))
+    check_eval.start()
+    check_activation_status.start()
 
-@tasks.loop(minutes=5)
-async def send_message():
-    channel = bot.get_channel(CHANNEL_ID)
-    if channel:
-        message = get_eval()
-        if message:
-            await channel.send(message)
+@tasks.loop(minutes=10)
+async def check_eval():
+    now = datetime.now(pytz.timezone('Europe/Paris')).time()
+    if now >= datetime.strptime('08:00', '%H:%M').time() and now <= datetime.strptime('20:00', '%H:%M').time():
+        channel = bot.get_channel(CHANNEL_ID)
+        if channel:
+            messages = get_eval()
+            for message in messages:
+                await channel.send(embed=discord.Embed(
+                    title="Nouvelle Évaluation",
+                    description=message,
+                    color=discord.Color.blue()
+                ))
+
+@tasks.loop(hours=24)
+async def check_activation_status():
+    # Envoyer un message d'activation à 8h00 et un message de désactivation à 20h00
+    now = datetime.now(pytz.timezone('Europe/Paris')).time()
+    if now == datetime.strptime('08:00', '%H:%M').time():
+        await bot.get_channel(CHANNEL_ID).send(embed=discord.Embed(
+            title="Activation du Bot",
+            description=":robot: Le bot est maintenant **actif** !",
+            color=discord.Color.green()
+        ))
+    elif now == datetime.strptime('20:00', '%H:%M').time():
+        await bot.get_channel(CHANNEL_ID).send(embed=discord.Embed(
+            title="Désactivation du Bot",
+            description=":sleeping: Le bot est maintenant **inactif**.",
+            color=discord.Color.red()
+        ))
 
 @bot.command(name='start')
 async def start_task(ctx):
-    send_message.start()
+    check_eval.start()
+    await ctx.send(embed=discord.Embed(
+        title="Tâche démarrée",
+        description=":arrow_forward: La vérification des évaluations a été démarrée.",
+        color=discord.Color.green()
+    ))
 
 @bot.command(name='stop')
 async def stop_task(ctx):
-    send_message.stop()
+    check_eval.stop()
+    await ctx.send(embed=discord.Embed(
+        title="Tâche arrêtée",
+        description=":stop_sign: La vérification des évaluations a été arrêtée.",
+        color=discord.Color.red()
+    ))
 
 bot.run(TOKEN)
