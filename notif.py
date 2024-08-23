@@ -8,7 +8,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from pypushover import Client  # Mise à jour de l'import
+import http.client, urllib
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 # Configuration du logging
@@ -28,8 +28,18 @@ client = Client(user_key=pushover_user_key, api_token=pushover_api_token)
 
 # Fonction pour envoyer une notification via Pushover
 def send_notification(title, message):
-    client.send_message(message, title=title)
-    logging.info(f"Notification envoyée: {title} - {message}")
+    conn = http.client.HTTPSConnection("api.pushover.net:443")
+    conn.request("POST", "/1/messages.json",
+      urllib.parse.urlencode({
+        "token": pushover_api_token,
+        "user": pushover_user_key,
+        "message": f"{title} - {message}",
+      }), { "Content-type": "application/x-www-form-urlencoded" })
+    response = conn.getresponse()
+    if response.status == 200:
+        logging.info(f"Notification envoyée: {title} - {message}")
+    else:
+        logging.error(f"Erreur lors de l'envoi de la notification: {response.reason}")
 
 # Fonction pour convertir une chaîne datetime en timestamp
 def parse_datetime(datetime_str):
