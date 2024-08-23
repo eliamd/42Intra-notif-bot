@@ -134,7 +134,8 @@ check_job = scheduler.add_job(check_evaluations, IntervalTrigger(minutes=10))
 def random_check():
     interval = random.randint(10, 16) * 60
     logging.info(f"Nouvel intervalle de vérification défini: {interval // 60} minutes.")
-    scheduler.modify_job(check_job.id, trigger='interval', seconds=interval)
+    new_trigger = IntervalTrigger(seconds=interval)
+    scheduler.modify_job(check_job.id, trigger=new_trigger)
 
 # Envoi de la notification à l'activation du bot
 send_notification("Activation du Bot", "🚀 Le bot est maintenant actif et surveille les nouvelles évaluations.")
