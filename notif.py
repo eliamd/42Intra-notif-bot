@@ -3,7 +3,7 @@ import config
 import random
 import pytz
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -18,21 +18,19 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 USE_TIME_WINDOW = config.use_time_window
 login = config.login
 mdp = config.mdp
-id_discord = config.id_discord
 pushover_user_key = config.pushover_user_key
 pushover_api_token = config.pushover_api_token
 seen_ids = set()
-
 
 # Fonction pour envoyer une notification via Pushover
 def send_notification(title, message):
     conn = http.client.HTTPSConnection("api.pushover.net:443")
     conn.request("POST", "/1/messages.json",
-      urllib.parse.urlencode({
-        "token": pushover_api_token,
-        "user": pushover_user_key,
-        "message": f"{title} - {message}",
-      }), { "Content-type": "application/x-www-form-urlencoded" })
+        urllib.parse.urlencode({
+            "token": pushover_api_token,
+            "user": pushover_user_key,
+            "message": f"{title} - {message}",
+        }), {"Content-type": "application/x-www-form-urlencoded"})
     response = conn.getresponse()
     if response.status == 200:
         logging.info(f"Notification envoyée: {title} - {message}")
@@ -77,6 +75,15 @@ def get_new_projects(driver):
 
     return new_items
 
+# Fonction pour envoyer un rappel d'évaluation
+def schedule_reminder(project_name, timestamp):
+    now = int(time.time())
+    reminder_time = timestamp - 1 * 60  # Rappel 5 minutes avant l'évaluation
+    if reminder_time > now:
+        delay = reminder_time - now
+        logging.info(f"Programmation du rappel pour le projet {project_name} dans {delay} secondes.")
+        scheduler.add_job(lambda: send_notification("📝⚠️Rappel d'Évaluation", f"L'évaluation pour le projet **{project_name}** commence maintenant."), 'date', run_date=datetime.fromtimestamp(reminder_time))
+
 # Fonction pour lancer la vérification des évaluations
 def check_evaluations():
     logging.info("Début de la vérification des évaluations.")
@@ -108,9 +115,8 @@ def check_evaluations():
                 if timestamp:
                     timestamp_format = f"<t:{timestamp}:F>"
                     message = f"📝 Vous allez évaluer quelqu'un pour le projet {project_name} à {timestamp_format}."
-                else:
-                    message = f"📝 Vous allez évaluer quelqu'un pour le projet {project_name}."
-                send_notification("Nouvelle Évaluation", message)
+                    send_notification("Nouvelle Évaluation", message)
+                    schedule_reminder(project_name, timestamp)
         else:
             logging.info("Aucune nouvelle évaluation trouvée.")
     except Exception as e:
