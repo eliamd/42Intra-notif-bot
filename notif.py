@@ -23,8 +23,6 @@ pushover_user_key = config.pushover_user_key
 pushover_api_token = config.pushover_api_token
 seen_ids = set()
 
-# Initialisation du client Pushover
-client = Client(user_key=pushover_user_key, api_token=pushover_api_token)
 
 # Fonction pour envoyer une notification via Pushover
 def send_notification(title, message):
