@@ -107,9 +107,9 @@ def check_evaluations():
             for project_id, project_name, timestamp in new_projects:
                 if timestamp:
                     timestamp_format = f"<t:{timestamp}:F>"
-                    message = f"📝 Vous allez évaluer quelqu'un pour le projet **{project_name}** à {timestamp_format}."
+                    message = f"📝 Vous allez évaluer quelqu'un pour le projet {project_name} à {timestamp_format}."
                 else:
-                    message = f"📝 Vous allez évaluer quelqu'un pour le projet **{project_name}**."
+                    message = f"📝 Vous allez évaluer quelqu'un pour le projet {project_name}."
                 send_notification("Nouvelle Évaluation", message)
         else:
             logging.info("Aucune nouvelle évaluation trouvée.")
@@ -129,7 +129,7 @@ def random_check():
     check_evaluations()
 
 # Envoi de la notification à l'activation du bot
-send_notification("Activation du Bot", "🚀 Le bot est maintenant **actif** et surveille les nouvelles évaluations.")
+send_notification("Activation du Bot", "🚀 Le bot est maintenant actif et surveille les nouvelles évaluations.")
 
 # Démarrage du scheduler
 scheduler.start()
