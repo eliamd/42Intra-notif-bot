@@ -129,9 +129,11 @@ scheduler = BlockingScheduler()
 
 def random_check():
     interval = random.randint(9, 17) * 60  # Plage aléatoire entre 9 et 17 minutes
+    next_run_time = datetime.now() + timedelta(seconds=interval)
     logging.info(f"Nouvel intervalle de vérification défini: {interval // 60} minutes.")
+    logging.info(f"Prochaine exécution programmée pour: {next_run_time.strftime('%Y-%m-%d %H:%M:%S')}.")
     check_evaluations()
-    scheduler.add_job(random_check, 'date', run_date=datetime.now() + timedelta(seconds=interval))
+    scheduler.add_job(random_check, 'date', run_date=next_run_time)
 
 # Envoi de la notification à l'activation du bot
 send_notification("Activation du Bot", "🚀 Le bot est maintenant actif et surveille les nouvelles évaluations.")
