@@ -10,7 +10,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import http.client, urllib
 from apscheduler.schedulers.blocking import BlockingScheduler
-from apscheduler.triggers.interval import IntervalTrigger
 
 # Configuration du logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -79,7 +78,7 @@ def get_new_projects(driver):
 # Fonction pour envoyer un rappel d'évaluation
 def schedule_reminder(project_name, timestamp):
     now = int(time.time())
-    reminder_time = timestamp - 1 * 60  # Rappel 1 minutes avant l'évaluation
+    reminder_time = timestamp - 1 * 60  # Rappel 1 minute avant l'évaluation
     if reminder_time > now:
         delay = reminder_time - now
         logging.info(f"Programmation du rappel pour le projet {project_name} dans {delay} secondes.")
@@ -132,7 +131,7 @@ def random_check():
     interval = random.randint(9, 17) * 60  # Plage aléatoire entre 9 et 17 minutes
     logging.info(f"Nouvel intervalle de vérification défini: {interval // 60} minutes.")
     check_evaluations()
-    scheduler.add_job(random_check, 'interval', seconds=interval)
+    scheduler.add_job(random_check, 'date', run_date=datetime.now() + timedelta(seconds=interval))
 
 # Envoi de la notification à l'activation du bot
 send_notification("Activation du Bot", "🚀 Le bot est maintenant actif et surveille les nouvelles évaluations.")
