@@ -82,7 +82,7 @@ def schedule_reminder(project_name, timestamp):
     if reminder_time > now:
         delay = reminder_time - now
         logging.info(f"Programmation du rappel pour le projet {project_name} dans {delay} secondes.")
-        scheduler.add_job(lambda: send_notification("📝⚠️ Rappel d'Évaluation", f"L'évaluation pour le projet **{project_name}** commence maintenant."), 'date', run_date=datetime.fromtimestamp(reminder_time))
+        scheduler.add_job(lambda: send_notification("📝⚠️ Rappel d'Évaluation", f"L'évaluation pour le projet {project_name} commence maintenant."), 'date', run_date=datetime.fromtimestamp(reminder_time))
 
 # Fonction pour lancer la vérification des évaluations
 def check_evaluations():
