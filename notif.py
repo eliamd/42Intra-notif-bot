@@ -113,7 +113,8 @@ def check_evaluations():
         if new_projects:
             for project_id, project_name, timestamp in new_projects:
                 if timestamp:
-                    timestamp_format = f"<t:{timestamp}:F>"
+                    # Formater le timestamp en une chaîne lisible
+                    timestamp_format = datetime.fromtimestamp(timestamp).strftime('%H:%M')
                     message = f"📝 Vous allez évaluer quelqu'un pour le projet {project_name} à {timestamp_format}."
                     send_notification("Nouvelle Évaluation", message)
                     schedule_reminder(project_name, timestamp)
@@ -123,6 +124,7 @@ def check_evaluations():
         logging.error(f"Une erreur s'est produite: {e}")
     finally:
         driver.quit()
+
 
 # Scheduler pour exécuter les vérifications à des intervalles aléatoires
 scheduler = BlockingScheduler()
