@@ -79,11 +79,11 @@ def get_new_projects(driver):
 # Fonction pour envoyer un rappel d'évaluation
 def schedule_reminder(project_name, timestamp):
     now = int(time.time())
-    reminder_time = timestamp - 1 * 60  # Rappel 5 minutes avant l'évaluation
+    reminder_time = timestamp - 5 * 60  # Rappel 5 minutes avant l'évaluation
     if reminder_time > now:
         delay = reminder_time - now
         logging.info(f"Programmation du rappel pour le projet {project_name} dans {delay} secondes.")
-        scheduler.add_job(lambda: send_notification("📝⚠️Rappel d'Évaluation", f"L'évaluation pour le projet **{project_name}** commence maintenant."), 'date', run_date=datetime.fromtimestamp(reminder_time))
+        scheduler.add_job(lambda: send_notification("📝⚠️ Rappel d'Évaluation", f"L'évaluation pour le projet **{project_name}** commence maintenant."), 'date', run_date=datetime.fromtimestamp(reminder_time))
 
 # Fonction pour lancer la vérification des évaluations
 def check_evaluations():
@@ -128,17 +128,17 @@ def check_evaluations():
 # Scheduler pour exécuter les vérifications à des intervalles aléatoires
 scheduler = BlockingScheduler()
 
-check_job = scheduler.add_job(check_evaluations, IntervalTrigger(minutes=10))
-
-@scheduler.scheduled_job('interval', minutes=10)
 def random_check():
-    interval = random.randint(10, 16) * 60
+    interval = random.randint(9, 17) * 60  # Plage aléatoire entre 9 et 17 minutes
     logging.info(f"Nouvel intervalle de vérification défini: {interval // 60} minutes.")
-    new_trigger = IntervalTrigger(seconds=interval)
-    scheduler.modify_job(check_job.id, trigger=new_trigger)
+    check_evaluations()
+    scheduler.add_job(random_check, 'interval', seconds=interval)
 
 # Envoi de la notification à l'activation du bot
 send_notification("Activation du Bot", "🚀 Le bot est maintenant actif et surveille les nouvelles évaluations.")
+
+# Planification de la première exécution de random_check
+random_check()
 
 # Démarrage du scheduler
 scheduler.start()
