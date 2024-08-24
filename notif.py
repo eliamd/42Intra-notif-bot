@@ -79,7 +79,7 @@ def get_new_projects(driver):
 # Fonction pour envoyer un rappel d'évaluation
 def schedule_reminder(project_name, timestamp):
     now = int(time.time())
-    reminder_time = timestamp - 5 * 60  # Rappel 5 minutes avant l'évaluation
+    reminder_time = timestamp - 1 * 60  # Rappel 1 minutes avant l'évaluation
     if reminder_time > now:
         delay = reminder_time - now
         logging.info(f"Programmation du rappel pour le projet {project_name} dans {delay} secondes.")
