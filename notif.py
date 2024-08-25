@@ -20,7 +20,7 @@ login = config.login
 mdp = config.mdp
 pushover_user_key = config.pushover_user_key
 pushover_api_token = config.pushover_api_token
-seen_ids = set()
+seen_timestamps = set()
 
 # Fonction pour envoyer une notification via Pushover
 def send_notification(title, message):
@@ -52,26 +52,26 @@ def parse_datetime(datetime_str):
 
 # Fonction pour récupérer les nouveaux projets/évaluations
 def get_new_projects(driver):
-    global seen_ids
+    global seen_timestamps
     project_items = driver.find_elements(By.CLASS_NAME, "project-item.reminder")
     new_items = []
 
     for item in project_items:
-        project_id = item.get_attribute("id")
         project_text = item.find_element(By.CLASS_NAME, "project-item-text").text
-        if project_id not in seen_ids:
-            seen_ids.add(project_id)
-            start_index = project_text.find("on C")
-            if start_index != -1:
-                end_index = project_text.find("\n", start_index)
-                if end_index == -1:
-                    end_index = len(project_text)
+        start_index = project_text.find("on C")
+        if start_index != -1:
+            end_index = project_text.find("\n", start_index)
+            if end_index == -1:
+                end_index = len(project_text)
 
-                project_part = project_text[start_index:end_index].strip()
-                time_element = item.find_element(By.CSS_SELECTOR, "span[data-original-title]")
-                data_original_title = time_element.get_attribute("data-original-title")
-                timestamp = parse_datetime(data_original_title)
-                new_items.append([project_id, project_part, timestamp])
+            project_part = project_text[start_index:end_index].strip()
+            time_element = item.find_element(By.CSS_SELECTOR, "span[data-original-title]")
+            data_original_title = time_element.get_attribute("data-original-title")
+            timestamp = parse_datetime(data_original_title)
+
+            if timestamp and timestamp not in seen_timestamps:
+                seen_timestamps.add(timestamp)
+                new_items.append([project_part, timestamp])
 
     return new_items
 
@@ -111,7 +111,7 @@ def check_evaluations():
 
         new_projects = get_new_projects(driver)
         if new_projects:
-            for project_id, project_name, timestamp in new_projects:
+            for project_name, timestamp in new_projects:
                 if timestamp:
                     # Formater le timestamp en une chaîne lisible
                     timestamp_format = datetime.fromtimestamp(timestamp).strftime('%H:%M')
@@ -124,7 +124,6 @@ def check_evaluations():
         logging.error(f"Une erreur s'est produite: {e}")
     finally:
         driver.quit()
-
 
 # Scheduler pour exécuter les vérifications à des intervalles aléatoires
 scheduler = BlockingScheduler()
